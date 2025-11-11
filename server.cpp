@@ -151,12 +151,31 @@ int main() {
     buffer[bytesReceived] = '\0';
     round1Player2Num = stoi(string(buffer));
 
-    // Calculate scores for round 1
-    // Player 1 score = HCF of both numbers
-    // Player 2 score = last digit of LCM of both numbers
-    round1Player1Score = hcf(round1Player1Num, round1Player2Num);
-    int lcmValue = lcm(round1Player1Num, round1Player2Num);
-    round1Player2Score = getLastDigit(lcmValue);
+    // Validate numbers for round 1
+    bool player1Valid = isValidPlayer1Number(round1Player1Num);
+    bool player2Valid = isValidPlayer2Number(round1Player2Num);
+
+    // Calculate scores for round 1 with validation
+    if (!player1Valid && !player2Valid) {
+        // Both invalid: both get 0 points
+        round1Player1Score = 0;
+        round1Player2Score = 0;
+    } else if (!player1Valid) {
+        // Player 1 invalid: Player 1 gets 0, Player 2 gets 100
+        round1Player1Score = 0;
+        round1Player2Score = 100;
+    } else if (!player2Valid) {
+        // Player 2 invalid: Player 2 gets 0, Player 1 gets 100
+        round1Player1Score = 100;
+        round1Player2Score = 0;
+    } else {
+        // Both valid: normal scoring
+        // Player 1 score = HCF of both numbers
+        // Player 2 score = last digit of LCM of both numbers
+        round1Player1Score = hcf(round1Player1Num, round1Player2Num);
+        int lcmValue = lcm(round1Player1Num, round1Player2Num);
+        round1Player2Score = getLastDigit(lcmValue);
+    }
 
     // Update total scores
     player1Score += round1Player1Score;
@@ -209,11 +228,35 @@ int main() {
     buffer[bytesReceived] = '\0';
     round2Player1Num = stoi(string(buffer));
 
-    // Calculate scores for round 2
-    // In round 2, Player 2 gets HCF, Player 1 gets last digit of LCM
-    round2Player2Score = hcf(round2Player1Num, round2Player2Num);
-    lcmValue = lcm(round2Player1Num, round2Player2Num);
-    round2Player1Score = getLastDigit(lcmValue);
+    // Validate numbers for round 2
+    // In round 2, Player 2 picks first (50-99), Player 1 picks second (60-99)
+    bool round2Player2Valid = isValidPlayer1Number(round2Player2Num);
+    bool round2Player1Valid = isValidPlayer2Number(round2Player1Num);
+
+    // Check for duplicate numbers (same number in both rounds)
+    bool player1Duplicate = (round1Player1Num == round2Player1Num);
+    bool player2Duplicate = (round1Player2Num == round2Player2Num);
+
+    // Calculate scores for round 2 with validation
+    if ((!round2Player2Valid || player2Duplicate) && (!round2Player1Valid || player1Duplicate)) {
+        // Both invalid: both get 0 points
+        round2Player2Score = 0;
+        round2Player1Score = 0;
+    } else if (!round2Player2Valid || player2Duplicate) {
+        // Player 2 invalid: Player 2 gets 0, Player 1 gets 100
+        round2Player2Score = 0;
+        round2Player1Score = 100;
+    } else if (!round2Player1Valid || player1Duplicate) {
+        // Player 1 invalid: Player 1 gets 0, Player 2 gets 100
+        round2Player2Score = 100;
+        round2Player1Score = 0;
+    } else {
+        // Both valid: normal scoring
+        // In round 2, Player 2 gets HCF, Player 1 gets last digit of LCM
+        round2Player2Score = hcf(round2Player1Num, round2Player2Num);
+        int lcmValue = lcm(round2Player1Num, round2Player2Num);
+        round2Player1Score = getLastDigit(lcmValue);
+    }
 
     // Update total scores
     player1Score += round2Player1Score;
