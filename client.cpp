@@ -19,6 +19,7 @@ int main() {
         return 1;
     }
 
+    // • The client will send in a request to the server requesting a game (for this program, you always assume the client and server is on the same machine (so you should use "127.0.0.1" as the IP address)
     // Set up server address
     struct sockaddr_in serverAddr;
     memset(&serverAddr, 0, sizeof(serverAddr));
@@ -52,6 +53,7 @@ int main() {
     int playerNumber = stoi(string(buffer));
     cout << "You are Player " << playerNumber << endl;
 
+    // • The client should then send an ID (for this program, a single string) to the server for the record.
     // Send player ID to server
     string playerID;
     cout << "Enter your ID: ";
@@ -108,6 +110,7 @@ int main() {
     cout << "Round 1: Player 1 score = " << round1Score1 
          << ", Player 2 score = " << round1Score2 << endl;
 
+    // • Once the client receives the information, it should send in a number of round 2
     // ROUND 2
     // Receive request for number
     memset(buffer, 0, sizeof(buffer));
@@ -166,6 +169,7 @@ int main() {
     cout << "Total: Player 1 = " << total1 
          << ", Player 2 = " << total2 << endl;
     
+    // • The client, after receiving the information about who wins, should print a statement (you can select what statement to print, it must be different for the 3 cases, and please, no inappropriate language).
     // Print win/lose/draw message based on win status
     if (winStatus == 1) {
         cout << "Congratulations! You won!" << endl;
@@ -175,6 +179,7 @@ int main() {
         cout << "It's a draw! Well played!" << endl;
     }
     
+    // • After that, the client should disconnect from the server, and quit
     close(clientSocket);
     return 0;
 }

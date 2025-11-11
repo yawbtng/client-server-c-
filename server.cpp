@@ -41,6 +41,7 @@ int main() {
         return 1;
     }
 
+    // • The server should be started at the background, and it will listen for client connecting. (Use port 24175 for this program)
     // Listen for connections
     if (listen(serverSocket, MAX_CLIENTS) < 0) {
         cerr << "Error listening on socket" << endl;
@@ -61,6 +62,7 @@ int main() {
     }
     cout << "First client connected (Player 1)" << endl;
 
+    // • Once the server accepts a connection from the client, it should inform the client which player (player one or player two) that he/she is.
     // Inform first client that they are Player 1
     string player1Msg = "1";
     send(client1Socket, player1Msg.c_str(), player1Msg.length(), 0);
@@ -108,6 +110,7 @@ int main() {
     buffer[bytesReceived] = '\0';
     string player2ID(buffer);
 
+    // • Once the server collects the names, it should print the statement "<player one ID> vs. <player two ID>: Game start".
     // Print game start message
     cout << player1ID << " vs. " << player2ID << ": Game start" << endl;
 
@@ -119,6 +122,7 @@ int main() {
     int round1Player1Score = 0, round1Player2Score = 0;
     int round2Player1Score = 0, round2Player2Score = 0;
 
+    // • Then the server should send a request to ask the two players to send in the first number.
     // ROUND 1: Player 1 picks first (50-99), Player 2 picks second (60-99)
     // Request numbers from both players
     string requestMsg = "REQUEST_NUMBER";
@@ -181,6 +185,7 @@ int main() {
     player1Score += round1Player1Score;
     player2Score += round1Player2Score;
 
+    // • Once the server receives the numbers, it should calculate the score for this round. And then sent the score of both players, together with the numbers both player picked, back to the client.
     // Send round 1 results to both clients
     // Format: "ROUND1:num1:num2:score1:score2"
     string round1Result = "ROUND1:" + to_string(round1Player1Num) + ":" + 
@@ -190,6 +195,7 @@ int main() {
     send(client1Socket, round1Result.c_str(), round1Result.length(), 0);
     send(client2Socket, round1Result.c_str(), round1Result.length(), 0);
 
+    // • The server should then print the result of round 1: including the number selected, and the score of each player.
     // Print round 1 results
     cout << "Round 1: Player 1 selected " << round1Player1Num 
          << ", Player 2 selected " << round1Player2Num << endl;
@@ -262,6 +268,7 @@ int main() {
     player1Score += round2Player1Score;
     player2Score += round2Player2Score;
 
+    // • Then the server should calculate the score for round 2, and send the following tp the players: The score of round 2 for each player, The total score for each player, Whether the player win/lose/draw the match (sending 1/-1/0 respectively)
     // Determine winner (1 = win, -1 = lose, 0 = draw)
     int player1WinStatus = 0;
     int player2WinStatus = 0;
@@ -297,6 +304,7 @@ int main() {
                            to_string(player2WinStatus);
     send(client2Socket, round2Result2.c_str(), round2Result2.length(), 0);
 
+    // • The server should then print the result of round 2: including the number selected, and the score of each player, and then print out who is the winner.
     // Print round 2 results
     cout << "Round 2: Player 1 selected " << round2Player1Num 
          << ", Player 2 selected " << round2Player2Num << endl;
@@ -314,6 +322,7 @@ int main() {
         cout << "Result: Draw" << endl;
     }
     
+    // • The server should also quit.
     // Close connections
     close(client1Socket);
     close(client2Socket);
