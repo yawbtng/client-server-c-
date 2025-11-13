@@ -84,20 +84,65 @@ int main() {
     send(clientSocket, round1NumStr.c_str(), round1NumStr.length(), 0);
 
     // Receive round 1 results
-    memset(buffer, 0, sizeof(buffer));
-    bytesReceived = recv(clientSocket, buffer, sizeof(buffer) - 1, 0);
-    if (bytesReceived <= 0) {
-        cerr << "Error receiving round 1 results" << endl;
+    // Keep reading until we get a message starting with "ROUND1"
+    string round1Result = "";
+    while (round1Result.find("ROUND1") != 0) {
+        memset(buffer, 0, sizeof(buffer));
+        bytesReceived = recv(clientSocket, buffer, sizeof(buffer) - 1, 0);
+        if (bytesReceived <= 0) {
+            cerr << "Error receiving round 1 results" << endl;
+            close(clientSocket);
+            return 1;
+        }
+        buffer[bytesReceived] = '\0';
+        round1Result += string(buffer);
+        
+        // If we've received too much data without finding ROUND1, something is wrong
+        if (round1Result.length() > 1000) {
+            cerr << "Error: Received too much data without finding ROUND1" << endl;
+            cerr << "Received so far: [" << round1Result << "]" << endl;
+            close(clientSocket);
+            return 1;
+        }
+    }
+    
+    // Extract just the ROUND1 message (in case there's more data after it)
+    // Find the end of the ROUND1 message by counting colons (should have 4 colons total)
+    size_t round1End = round1Result.length();
+    int colonCount = 0;
+    for (size_t i = 0; i < round1Result.length(); i++) {
+        if (round1Result[i] == ':') {
+            colonCount++;
+            if (colonCount == 4) {
+                // Found the 4th colon, the number after it is the last field
+                // Find the end of that number (next non-digit or end of string)
+                size_t j = i + 1;
+                while (j < round1Result.length() && isdigit(round1Result[j])) {
+                    j++;
+                }
+                round1End = j;
+                break;
+            }
+        }
+    }
+    round1Result = round1Result.substr(0, round1End);
+    
+    // Debug: Print what we received
+    // cerr << "DEBUG: Received round1: [" << round1Result << "] (length: " << round1Result.length() << ")" << endl;
+    
+    // Parse round 1 results: "ROUND1:num1:num2:score1:score2"
+    // Check if message starts with "ROUND1"
+    if (round1Result.find("ROUND1") != 0) {
+        cerr << "Error: Invalid round 1 result format - doesn't start with ROUND1" << endl;
+        cerr << "Received: [" << round1Result << "]" << endl;
         close(clientSocket);
         return 1;
     }
-    buffer[bytesReceived] = '\0';
-    string round1Result(buffer);
     
-    // Parse round 1 results: "ROUND1:num1:num2:score1:score2"
     size_t pos = round1Result.find(':');
     if (pos == string::npos) {
-        cerr << "Error: Invalid round 1 result format" << endl;
+        cerr << "Error: Invalid round 1 result format - no colon found" << endl;
+        cerr << "Received: [" << round1Result << "]" << endl;
         close(clientSocket);
         return 1;
     }
@@ -112,7 +157,9 @@ int main() {
     size_t pos4 = round1Result.find(':', pos3 + 1);
     
     if (pos2 == string::npos || pos3 == string::npos || pos4 == string::npos) {
-        cerr << "Error: Invalid round 1 result format" << endl;
+        cerr << "Error: Invalid round 1 result format - missing colons" << endl;
+        cerr << "Received: [" << round1Result << "]" << endl;
+        cerr << "pos2: " << pos2 << ", pos3: " << pos3 << ", pos4: " << pos4 << endl;
         close(clientSocket);
         return 1;
     }
@@ -159,20 +206,50 @@ int main() {
     send(clientSocket, round2NumStr.c_str(), round2NumStr.length(), 0);
 
     // Receive round 2 results with final scores and win status
-    memset(buffer, 0, sizeof(buffer));
-    bytesReceived = recv(clientSocket, buffer, sizeof(buffer) - 1, 0);
-    if (bytesReceived <= 0) {
-        cerr << "Error receiving round 2 results" << endl;
+    // Keep reading until we get a message starting with "ROUND2"
+    string round2Result = "";
+    while (round2Result.find("ROUND2") != 0) {
+        memset(buffer, 0, sizeof(buffer));
+        bytesReceived = recv(clientSocket, buffer, sizeof(buffer) - 1, 0);
+        if (bytesReceived <= 0) {
+            cerr << "Error receiving round 2 results" << endl;
+            close(clientSocket);
+            return 1;
+        }
+        buffer[bytesReceived] = '\0';
+        round2Result += string(buffer);
+        
+        // If we've received too much data without finding ROUND2, something is wrong
+        if (round2Result.length() > 1000) {
+            cerr << "Error: Received too much data without finding ROUND2" << endl;
+            cerr << "Received so far: [" << round2Result << "]" << endl;
+            close(clientSocket);
+            return 1;
+        }
+    }
+    
+    // Extract just the ROUND2 message (in case there's more data after it)
+    size_t round2End = round2Result.find('\0');
+    if (round2End != string::npos && round2End < round2Result.length()) {
+        round2Result = round2Result.substr(0, round2End);
+    }
+    
+    // Debug: Print what we received
+    // cerr << "DEBUG: Received round2: [" << round2Result << "] (length: " << round2Result.length() << ")" << endl;
+    
+    // Parse round 2 results: "ROUND2:num1:num2:score1:score2:TOTAL1:TOTAL2:WIN_STATUS"
+    // Check if message starts with "ROUND2"
+    if (round2Result.find("ROUND2") != 0) {
+        cerr << "Error: Invalid round 2 result format - doesn't start with ROUND2" << endl;
+        cerr << "Received: [" << round2Result << "]" << endl;
         close(clientSocket);
         return 1;
     }
-    buffer[bytesReceived] = '\0';
-    string round2Result(buffer);
     
-    // Parse round 2 results: "ROUND2:num1:num2:score1:score2:TOTAL1:TOTAL2:WIN_STATUS"
     pos = round2Result.find(':');
     if (pos == string::npos) {
-        cerr << "Error: Invalid round 2 result format" << endl;
+        cerr << "Error: Invalid round 2 result format - no colon found" << endl;
+        cerr << "Received: [" << round2Result << "]" << endl;
         close(clientSocket);
         return 1;
     }
@@ -191,7 +268,8 @@ int main() {
     
     if (pos2 == string::npos || pos3 == string::npos || pos4 == string::npos || 
         pos5 == string::npos || pos6 == string::npos || lastPos == string::npos) {
-        cerr << "Error: Invalid round 2 result format" << endl;
+        cerr << "Error: Invalid round 2 result format - missing colons" << endl;
+        cerr << "Received: [" << round2Result << "]" << endl;
         close(clientSocket);
         return 1;
     }
