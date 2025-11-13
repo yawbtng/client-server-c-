@@ -3,6 +3,8 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <sys/wait.h>
+#include <cstdlib>
 #include <cstring>
 #include <string>
 #include "utils.h"
@@ -11,78 +13,27 @@ using namespace std;
 
 const int PORT = 24175;
 const int MAX_CLIENTS = 2;
+const int MAX_GAMES = 10;
 
-int main() {
-    int serverSocket = socket(AF_INET, SOCK_STREAM, 0);
-    if (serverSocket < 0) {
-        cerr << "Error creating socket" << endl;
-        return 1;
-    }
-
-    int opt = 1;
-    if (setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
-        cerr << "Error setting socket options" << endl;
-        close(serverSocket);
-        return 1;
-    }
-
-    struct sockaddr_in serverAddr;
-    memset(&serverAddr, 0, sizeof(serverAddr));
-    serverAddr.sin_family = AF_INET;
-    serverAddr.sin_addr.s_addr = INADDR_ANY;
-    serverAddr.sin_port = htons(PORT);
-
-    if (::bind(serverSocket, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) < 0) {
-        cerr << "Error binding socket to port " << PORT << endl;
-        close(serverSocket);
-        return 1;
-    }
-
-    // • The server should be started at the background, and it will listen for client connecting. (Use port 24175 for this program)
-    if (listen(serverSocket, MAX_CLIENTS) < 0) {
-        cerr << "Error listening on socket" << endl;
-        close(serverSocket);
-        return 1;
-    }
-
-    cout << "Server listening on port " << PORT << "..." << endl;
-
-    struct sockaddr_in clientAddr;
-    socklen_t clientAddrLen = sizeof(clientAddr);
-    int client1Socket = accept(serverSocket, (struct sockaddr*)&clientAddr, &clientAddrLen);
-    if (client1Socket < 0) {
-        cerr << "Error accepting first client connection" << endl;
-        close(serverSocket);
-        return 1;
-    }
-    cout << "First client connected (Player 1)" << endl;
-
+// • Extra credit: Once the server accepted both players, it should create a new child process/thread that handles the rest of the game
+// Function to handle a single game between two clients
+void handleGame(int client1Socket, int client2Socket) {
+    char buffer[1024];
+    memset(buffer, 0, sizeof(buffer));
+    
     // • Once the server accepts a connection from the client, it should inform the client which player (player one or player two) that he/she is.
     string player1Msg = "1";
     send(client1Socket, player1Msg.c_str(), player1Msg.length(), 0);
 
-    int client2Socket = accept(serverSocket, (struct sockaddr*)&clientAddr, &clientAddrLen);
-    if (client2Socket < 0) {
-        cerr << "Error accepting second client connection" << endl;
-        close(client1Socket);
-        close(serverSocket);
-        return 1;
-    }
-    cout << "Second client connected (Player 2)" << endl;
-
     string player2Msg = "2";
     send(client2Socket, player2Msg.c_str(), player2Msg.length(), 0);
 
-    char buffer[1024];
-    memset(buffer, 0, sizeof(buffer));
-    
     int bytesReceived = recv(client1Socket, buffer, sizeof(buffer) - 1, 0);
     if (bytesReceived <= 0) {
         cerr << "Error receiving Player 1 ID" << endl;
         close(client1Socket);
         close(client2Socket);
-        close(serverSocket);
-        return 1;
+        return;
     }
     buffer[bytesReceived] = '\0';
     string player1ID(buffer);
@@ -93,8 +44,7 @@ int main() {
         cerr << "Error receiving Player 2 ID" << endl;
         close(client1Socket);
         close(client2Socket);
-        close(serverSocket);
-        return 1;
+        return;
     }
     buffer[bytesReceived] = '\0';
     string player2ID(buffer);
@@ -120,8 +70,7 @@ int main() {
         cerr << "Error receiving Player 1 number for round 1" << endl;
         close(client1Socket);
         close(client2Socket);
-        close(serverSocket);
-        return 1;
+        return;
     }
     buffer[bytesReceived] = '\0';
     round1Player1Num = stoi(string(buffer));
@@ -132,8 +81,7 @@ int main() {
         cerr << "Error receiving Player 2 number for round 1" << endl;
         close(client1Socket);
         close(client2Socket);
-        close(serverSocket);
-        return 1;
+        return;
     }
     buffer[bytesReceived] = '\0';
     round1Player2Num = stoi(string(buffer));
@@ -182,8 +130,7 @@ int main() {
         cerr << "Error receiving Player 2 number for round 2" << endl;
         close(client1Socket);
         close(client2Socket);
-        close(serverSocket);
-        return 1;
+        return;
     }
     buffer[bytesReceived] = '\0';
     round2Player2Num = stoi(string(buffer));
@@ -194,8 +141,7 @@ int main() {
         cerr << "Error receiving Player 1 number for round 2" << endl;
         close(client1Socket);
         close(client2Socket);
-        close(serverSocket);
-        return 1;
+        return;
     }
     buffer[bytesReceived] = '\0';
     round2Player1Num = stoi(string(buffer));
@@ -275,6 +221,100 @@ int main() {
     // • The server should also quit.
     close(client1Socket);
     close(client2Socket);
+}
+
+int main() {
+    int serverSocket = socket(AF_INET, SOCK_STREAM, 0);
+    if (serverSocket < 0) {
+        cerr << "Error creating socket" << endl;
+        return 1;
+    }
+
+    int opt = 1;
+    if (setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
+        cerr << "Error setting socket options" << endl;
+        close(serverSocket);
+        return 1;
+    }
+
+    struct sockaddr_in serverAddr;
+    memset(&serverAddr, 0, sizeof(serverAddr));
+    serverAddr.sin_family = AF_INET;
+    serverAddr.sin_addr.s_addr = INADDR_ANY;
+    serverAddr.sin_port = htons(PORT);
+
+    if (::bind(serverSocket, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) < 0) {
+        cerr << "Error binding socket to port " << PORT << endl;
+        close(serverSocket);
+        return 1;
+    }
+
+    // • The server should be started at the background, and it will listen for client connecting. (Use port 24175 for this program)
+    if (listen(serverSocket, MAX_CLIENTS) < 0) {
+        cerr << "Error listening on socket" << endl;
+        close(serverSocket);
+        return 1;
+    }
+
+    cout << "Server listening on port " << PORT << "..." << endl;
+
+    // • Extra credit: The server will keep running until 10 games have finished
+    int gamesCompleted = 0;
+    struct sockaddr_in clientAddr;
+    socklen_t clientAddrLen = sizeof(clientAddr);
+
+    while (gamesCompleted < MAX_GAMES) {
+        // Accept first client
+        int client1Socket = accept(serverSocket, (struct sockaddr*)&clientAddr, &clientAddrLen);
+        if (client1Socket < 0) {
+            cerr << "Error accepting first client connection" << endl;
+            continue;
+        }
+        cout << "First client connected (Player 1) for game " << (gamesCompleted + 1) << endl;
+
+        // Accept second client
+        int client2Socket = accept(serverSocket, (struct sockaddr*)&clientAddr, &clientAddrLen);
+        if (client2Socket < 0) {
+            cerr << "Error accepting second client connection" << endl;
+            close(client1Socket);
+            continue;
+        }
+        cout << "Second client connected (Player 2) for game " << (gamesCompleted + 1) << endl;
+
+        // • Extra credit: Once the server accepted both players, it should create a new child process/thread that handles the rest of the game
+        // Fork a child process to handle this game
+        pid_t pid = fork();
+        if (pid < 0) {
+            cerr << "Error forking process" << endl;
+            close(client1Socket);
+            close(client2Socket);
+            continue;
+        } else if (pid == 0) {
+            // Child process: handle the game
+            close(serverSocket); // Child doesn't need the listening socket
+            handleGame(client1Socket, client2Socket);
+            exit(0); // Child process exits after handling the game
+        } else {
+            // Parent process: close client sockets (child has copies) and continue listening
+            close(client1Socket);
+            close(client2Socket);
+            gamesCompleted++;
+            
+            // • Extra credit: After that, the server process/thread should return and listen to the next player
+            // Clean up any finished child processes (non-blocking)
+            while (waitpid(-1, NULL, WNOHANG) > 0) {
+                // Reap any finished child processes
+            }
+        }
+    }
+
+    // Wait for all child processes to finish before exiting
+    cout << "Maximum games (" << MAX_GAMES << ") reached. Waiting for all games to finish..." << endl;
+    while (wait(NULL) > 0) {
+        // Wait for all child processes to complete
+    }
+
     close(serverSocket);
+    cout << "Server shutting down." << endl;
     return 0;
 }
