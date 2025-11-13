@@ -140,27 +140,23 @@ int main() {
         return 1;
     }
     
-    size_t pos = round1Result.find(':');
+    // Parse format: "ROUND1:num1:num2:score1:score2"
+    // Find all colon positions
+    size_t pos = round1Result.find(':');  // First colon after "ROUND1"
     if (pos == string::npos) {
         cerr << "Error: Invalid round 1 result format - no colon found" << endl;
         cerr << "Received: [" << round1Result << "]" << endl;
         close(clientSocket);
         return 1;
     }
-    pos = round1Result.find(':', pos + 1); // Skip "ROUND1"
-    if (pos == string::npos) {
-        cerr << "Error: Invalid round 1 result format" << endl;
-        close(clientSocket);
-        return 1;
-    }
-    size_t pos2 = round1Result.find(':', pos + 1);
-    size_t pos3 = round1Result.find(':', pos2 + 1);
-    size_t pos4 = round1Result.find(':', pos3 + 1);
+    size_t pos2 = round1Result.find(':', pos + 1);  // Second colon (after num1)
+    size_t pos3 = round1Result.find(':', pos2 + 1); // Third colon (after num2)
+    size_t pos4 = round1Result.find(':', pos3 + 1); // Fourth colon (after score1)
     
+    // Check that we found all required colons (4 colons total in the message)
     if (pos2 == string::npos || pos3 == string::npos || pos4 == string::npos) {
         cerr << "Error: Invalid round 1 result format - missing colons" << endl;
         cerr << "Received: [" << round1Result << "]" << endl;
-        cerr << "pos2: " << pos2 << ", pos3: " << pos3 << ", pos4: " << pos4 << endl;
         close(clientSocket);
         return 1;
     }
@@ -170,7 +166,7 @@ int main() {
         round1Num1 = stoi(round1Result.substr(pos + 1, pos2 - pos - 1));
         round1Num2 = stoi(round1Result.substr(pos2 + 1, pos3 - pos2 - 1));
         round1Score1 = stoi(round1Result.substr(pos3 + 1, pos4 - pos3 - 1));
-        round1Score2 = stoi(round1Result.substr(pos4 + 1));
+        round1Score2 = stoi(round1Result.substr(pos4 + 1)); // score2 is everything after the 4th colon
         
         cout << "Round 1: Player 1 selected " << round1Num1 
              << ", Player 2 selected " << round1Num2 << endl;
@@ -247,28 +243,25 @@ int main() {
         return 1;
     }
     
-    pos = round2Result.find(':');
+    // Parse format: "ROUND2:num1:num2:score1:score2:TOTAL1:TOTAL2:WIN_STATUS"
+    // Find all colon positions
+    pos = round2Result.find(':');  // First colon after "ROUND2"
     if (pos == string::npos) {
         cerr << "Error: Invalid round 2 result format - no colon found" << endl;
         cerr << "Received: [" << round2Result << "]" << endl;
         close(clientSocket);
         return 1;
     }
-    pos = round2Result.find(':', pos + 1); // Skip "ROUND2"
-    if (pos == string::npos) {
-        cerr << "Error: Invalid round 2 result format" << endl;
-        close(clientSocket);
-        return 1;
-    }
-    pos2 = round2Result.find(':', pos + 1);
-    pos3 = round2Result.find(':', pos2 + 1);
-    pos4 = round2Result.find(':', pos3 + 1);
-    size_t pos5 = round2Result.find(':', pos4 + 1);
-    size_t pos6 = round2Result.find(':', pos5 + 1);
-    size_t lastPos = round2Result.find(':', pos6 + 1);
+    pos2 = round2Result.find(':', pos + 1);   // Second colon (after num1)
+    pos3 = round2Result.find(':', pos2 + 1);  // Third colon (after num2)
+    pos4 = round2Result.find(':', pos3 + 1);  // Fourth colon (after score1)
+    size_t pos5 = round2Result.find(':', pos4 + 1);  // Fifth colon (after score2)
+    size_t pos6 = round2Result.find(':', pos5 + 1);  // Sixth colon (after TOTAL1)
+    size_t pos7 = round2Result.find(':', pos6 + 1);  // Seventh colon (after TOTAL2)
     
+    // Check that we found all required colons (7 colons total in the message)
     if (pos2 == string::npos || pos3 == string::npos || pos4 == string::npos || 
-        pos5 == string::npos || pos6 == string::npos || lastPos == string::npos) {
+        pos5 == string::npos || pos6 == string::npos || pos7 == string::npos) {
         cerr << "Error: Invalid round 2 result format - missing colons" << endl;
         cerr << "Received: [" << round2Result << "]" << endl;
         close(clientSocket);
@@ -282,8 +275,8 @@ int main() {
         round2Score1 = stoi(round2Result.substr(pos3 + 1, pos4 - pos3 - 1));
         round2Score2 = stoi(round2Result.substr(pos4 + 1, pos5 - pos4 - 1));
         total1 = stoi(round2Result.substr(pos5 + 1, pos6 - pos5 - 1));
-        total2 = stoi(round2Result.substr(pos6 + 1, lastPos - pos6 - 1));
-        winStatus = stoi(round2Result.substr(lastPos + 1));
+        total2 = stoi(round2Result.substr(pos6 + 1, pos7 - pos6 - 1));
+        winStatus = stoi(round2Result.substr(pos7 + 1));  // WIN_STATUS is everything after the 7th colon
     
         cout << "Round 2: Player 1 selected " << round2Num1 
              << ", Player 2 selected " << round2Num2 << endl;
